@@ -20,7 +20,8 @@ def content_loss(content_weight, content_current, content_target):
     ##############################################################################
     #                               YOUR CODE HERE                               #
     ##############################################################################
-    return None
+    diff = content_current - content_target
+    return content_weight * torch.sum(diff**2)
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
@@ -43,7 +44,10 @@ def gram_matrix(features, normalize=True):
     ##############################################################################
     #                               YOUR CODE HERE                               #
     ##############################################################################
-    return None
+    norm = 1
+    if normalize:
+        norm = features.size(1) * features.size(2) * features.size(3) # (H * W * C)
+    return torch.einsum("ijkl,imkl->imj", features, features) / norm
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
@@ -72,7 +76,11 @@ def style_loss(feats, style_layers, style_targets, style_weights):
     ##############################################################################
     #                               YOUR CODE HERE                               #
     ##############################################################################
-    return None
+    total_loss = 0.0
+    for i, l in enumerate(style_layers):
+        diff = gram_matrix(feats[l]) - style_targets[i]
+        total_loss += style_weights[i] * torch.sum(diff**2) 
+    return total_loss
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
@@ -94,7 +102,9 @@ def tv_loss(img, tv_weight):
     ##############################################################################
     #                               YOUR CODE HERE                               #
     ##############################################################################
-    return None
+    horizontal = torch.sum((img[:, :, :, 1:] - img[:, :, :, :-1])**2)
+    vertical = torch.sum((img[:, :, 1:] - img[:, :, :-1])**2)
+    return tv_weight * (horizontal + vertical)
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################

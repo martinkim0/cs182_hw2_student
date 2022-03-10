@@ -31,7 +31,11 @@ def compute_saliency_maps(X, y, model):
     # to each input image. You first want to compute the loss over the correct   #
     # scores, and then compute the gradients with torch.autograd.gard.           #
     ##############################################################################
-    pass
+    logits = model(X)
+    logits = torch.gather(logits, -1, y.view(-1, 1)).squeeze()
+    logits.backward(torch.ones_like(logits))
+
+    saliency, _ = torch.max(torch.abs(X.grad), dim=1)
     ##############################################################################
     #                             END OF YOUR CODE                               #
     ##############################################################################
@@ -69,7 +73,21 @@ def make_fooling_image(X, target_y, model):
     # in fewer than 100 iterations of gradient ascent.                           #
     # You can print your progress over iterations to check your algorithm.       #
     ##############################################################################
-    pass
+    max_iter = 200
+
+    for _ in range(max_iter):
+        logits = model(X_fooling) # (1, C)
+        pred_y = torch.argmax(logits, dim=-1).item()
+        if pred_y == target_y:
+            break
+
+        score = logits[:, target_y]
+        score.backward()
+        dX = X_fooling.grad
+        dX = learning_rate * (dX / torch.linalg.norm(dX.flatten(), ord=2))
+        X_fooling = X_fooling + dX
+        X_fooling = X_fooling.clone().detach().requires_grad_(True)
+        
     ##############################################################################
     #                             END OF YOUR CODE                               #
     ##############################################################################
@@ -98,7 +116,10 @@ def update_class_visulization(model, target_y, l2_reg, learning_rate, img):
     # L2 regularization term!                                              #
     # Be very careful about the signs of elements in your code.            #
     ########################################################################
-    pass
+    logits = model(img)
+    score = logits[:, target_y]
+    score.backward()
+    img = img + learning_rate * (img.grad - 2 * l2_reg * img)
     ########################################################################
     #                             END OF YOUR CODE                         #
     ########################################################################
